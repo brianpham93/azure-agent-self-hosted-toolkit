@@ -57,7 +57,7 @@ cd $AGENT_INSTALL_DIR && ./config.sh --replace --unattended --acceptTeeEula --ur
 echo "Adding ENV variables for different aspects / fixes"
 # fix docker MTU or the networks created for the docker container will have the wrong (1500) MTA and thus
 # fail to do any requests
-echo "AGENT_DOCKER_MTU_VALUE=$DOCKER_NETWORK_MTU" >> $AGENT_USER_HOME/agent/.env
+echo "AGENT_DOCKER_MTU_VALUE=$DOCKER_NETWORK_MTU" >> $AGENT_USER_HOME/$AGENT_USER/.env
 # For more options see https://github.com/microsoft/azure-pipelines-agent/blob/master/src/Agent.Sdk/Knob/AgentKnobs.cs#L37
 
 echo "Creating systemd entry for agent $AGENT_USER"

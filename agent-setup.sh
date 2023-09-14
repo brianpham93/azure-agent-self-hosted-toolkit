@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-
 AGENT_USER=$1
 AZP_TOKEN=$2
 POOL=${3:-Default}
@@ -9,7 +8,8 @@ USE_RUNONCE=${4:-1}
 DOCKER_NETWORK_MTU=${5:-1500}
 AGENT_VERSION=${6:-"3.220.2"}
 ARCH=${7:-"x64"}
-AZURE_PROJECT=${8:-"kontextwork"}
+AZURE_PROJECT=${8:-"wallet-api"}
+CURRENT_USER=brian_pham
 
 if [ -z "$AGENT_USER" ]; then
   echo "Please provide the agent name the first parameter param"
@@ -38,11 +38,8 @@ if [ -z "$DOCKER_NETWORK_MTU" ]; then
   exit 1
 fi
 
-echo "adding user"
-useradd $AGENT_USER -m
-usermod -a -G docker $AGENT_USER
-export AGENT_USER_HOME=/home/$AGENT_USER
-export AGENT_INSTALL_DIR=$AGENT_USER_HOME/agent
+export AGENT_USER_HOME=/home/$CURRENT_USER
+export AGENT_INSTALL_DIR=$AGENT_USER_HOME/$AGENT_USER
 
 echo "Downloading agent"
 mkdir -p $AGENT_INSTALL_DIR
@@ -50,12 +47,12 @@ curl -f -o $AGENT_INSTALL_DIR/agent.tar.gz https://vstsagentpackage.azureedge.ne
 cd $AGENT_INSTALL_DIR
 tar -xf agent.tar.gz
 rm -f $AGENT_INSTALL_DIR/agent.tar.gz
-chown $AGENT_USER:$AGENT_USER $AGENT_USER_HOME -R
+chown $CURRENT_USER:$CURRENT_USER $AGENT_USER_HOME -R
 
 echo "configuring agent"
 # use ./config.sh --help to find more options
 # --replace to replace an agent with the same name (if we redeploy)
-su -c "cd $AGENT_INSTALL_DIR && ./config.sh --replace --unattended --acceptTeeEula --url https://dev.azure.com/$AZURE_PROJECT --auth pat --token $AZP_TOKEN --pool $POOL --agent $AGENT_USER" $AGENT_USER
+cd $AGENT_INSTALL_DIR && ./config.sh --replace --unattended --acceptTeeEula --url https://dev.azure.com/$AZURE_PROJECT --auth pat --token $AZP_TOKEN --pool $POOL --agent $AGENT_USER
 
 echo "Adding ENV variables for different aspects / fixes"
 # fix docker MTU or the networks created for the docker container will have the wrong (1500) MTA and thus
@@ -64,8 +61,8 @@ echo "AGENT_DOCKER_MTU_VALUE=$DOCKER_NETWORK_MTU" >> $AGENT_USER_HOME/agent/.env
 # For more options see https://github.com/microsoft/azure-pipelines-agent/blob/master/src/Agent.Sdk/Knob/AgentKnobs.cs#L37
 
 echo "Creating systemd entry for agent $AGENT_USER"
-cd $AGENT_USER_HOME/agent/
-./svc.sh install $AGENT_USER
+cd $AGENT_USER_HOME/$AGENT_USER/
+sudo ./svc.sh install $AGENT_USER
 
 if [ $USE_RUNONCE -gt 0 ]; then
   echo "Manipulating system-unit file to use agent-run-once-forever.sh"
